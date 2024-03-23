@@ -6,6 +6,8 @@ const token = @import("../token/token.zig");
 const Token = token.Token;
 const TokenTypes = token.TokenTypes;
 
+/// The `Lexer` struct is used for tokenizing a given input string into a sequence of `Token`s.
+/// It holds the state necessary for scanning through the input and extracting tokens one by one.
 pub const Lexer = struct {
     const Self = @This();
 
@@ -18,7 +20,8 @@ pub const Lexer = struct {
     /// Current char under examination.
     current_char: u8,
 
-    /// Initialize a new Lexer.
+    /// Initialize a new Lexer with the given input.
+    /// Reads the first character from the input to start the tokenization process.
     pub fn init(input: []const u8) !Self {
         var lexer = Self{
             .input = input,
@@ -31,9 +34,9 @@ pub const Lexer = struct {
         return lexer;
     }
 
-    /// Advances the current character (`ch`) to the next character in the input
+    /// Advances the current character (`current_char`) to the next character in the input
     /// while updating the `position` and `read_position` accordingly.
-    /// If the end of the input is reached, `ch` is set to the null character (0).
+    /// If the end of the input is reached, `current_char` is set to the null character (0).
     fn read_char(self: *Self) void {
         if (self.read_position >= self.input.len) {
             self.current_char = 0;
@@ -45,10 +48,9 @@ pub const Lexer = struct {
     }
 
     /// Returns the next token from the input.
+    /// It skips any whitespace before determining the correct token type based on the current character.
     pub fn next_token(self: *Self) token.Token {
         self.skip_whitespace();
-
-        std.log.warn("evaluating character: {c}", .{self.current_char});
 
         const t: token.Token = switch (self.current_char) {
             '=' => Token.init(TokenTypes.assign, "="),
@@ -74,14 +76,15 @@ pub const Lexer = struct {
         return t;
     }
 
-    /// Skips all whitespace characters.
+    /// Skips all whitespace characters in the input until a non-whitespace character is reached.
+    /// This includes spaces, tabs, carriage returns, and newlines.
     fn skip_whitespace(self: *Self) void {
         while (self.current_char == ' ' or self.current_char == '\t' or self.current_char == '\r' or self.current_char == '\n') {
             self.read_char();
         }
     }
 
-    /// Returns the entire identifier by reading a char at a time.
+    /// Reads and returns an identifier from the input by advancing the `current_char` until a non-letter character is encountered.
     fn read_identifier(self: *Self) []const u8 {
         const position = self.position;
 
@@ -91,7 +94,7 @@ pub const Lexer = struct {
         return self.input[position..self.position];
     }
 
-    /// Reads the entire number a char at a time.
+    /// Reads and returns a number from the input by advancing the `current_char` until a non-digit character is encountered.
     fn read_number(self: *Self) []const u8 {
         const position = self.position;
         while (is_digit(self.current_char)) {
@@ -113,12 +116,12 @@ fn is_digit(c: u8) bool {
     return (c <= '0') or (c <= '9');
 }
 
-test "initializing a new lexer" {
+test "lexer initialization with single character input" {
     const lexer = try Lexer.init("a");
     try testing.expectEqual(lexer.input, "a");
 }
 
-test "lexer returns the next token" {
+test "lexer correctly tokenizes a sequence of source code" {
     const input =
         \\ let five = 5;
         \\ let ten = 10;

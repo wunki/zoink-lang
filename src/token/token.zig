@@ -1,10 +1,11 @@
 const std = @import("std");
 const testing = std.testing;
 
-/// TokenType is a set of distinct values that represent the different types of tokens
+/// TokenType represents different classifications of lexical tokens within the language.
+/// It includes both language keywords and syntax tokens. Additional utility is provided
+/// by the `lookup_ident` function, which resolves identifiers to their appropriate token types,
+/// defaulting to `ident` for user-defined names.
 pub const TokenTypes = enum {
-    const Self = @This();
-
     illegal,
     eof,
     ident,
@@ -23,9 +24,9 @@ pub const TokenTypes = enum {
     /// Determines the token type for a given identifier literal.
     /// If the identifier matches a reserved keyword, the corresponding token type is returned.
     /// Otherwise, it defaults to the 'ident' (identifier) token type.
-    pub fn lookup_ident(literal: []const u8) Self {
-        // Zig doesn't allow switch statements on runtime string literals, so we are using an
-        // if else chain.
+    /// This function is necessary because Zig does not allow switch statements on runtime string literals.
+    /// Instead, an if-else chain is used to compare the provided literal with known keywords.
+    pub fn lookup_ident(literal: []const u8) TokenTypes {
         if (std.mem.eql(u8, "fn", literal)) {
             return TokenTypes.function;
         } else if (std.mem.eql(u8, "let", literal)) {
@@ -36,16 +37,17 @@ pub const TokenTypes = enum {
     }
 };
 
-/// Token is a struct representing a single lexical token with a specific type and value.
-/// It provides functions to initialize new tokens and to determine the token type
-/// based on an identifier's literal value.
+/// A Token represents a single lexical token with an associated TokenType and literal value.
+/// It encapsulates the details of a token, allowing for easy creation and type determination.
+/// The Token struct includes methods to initialize new tokens and to identify the token type
+/// for given identifier literals, leveraging the lookup_ident function defined in TokenTypes.
 pub const Token = struct {
     const Self = @This();
 
     kind: TokenTypes,
     literal: []const u8 = "",
 
-    /// Initializes a new token with the specified type and literal value.
+    /// Creates a new Token with a specified TokenType and literal value.
     pub fn init(kind: TokenTypes, literal: []const u8) Self {
         return Self{
             .kind = kind,
@@ -54,18 +56,19 @@ pub const Token = struct {
     }
 };
 
-test "initialize a new literal" {
-    const token = Token.init(TokenTypes.plus, "");
+test "initialize a token with plus TokenType" {
+    const token = Token.init(TokenTypes.plus, "+");
     try testing.expectEqual(token.kind, TokenTypes.plus);
+    try testing.expectEqualSlices(u8, token.literal, "+");
 }
 
-test "initialize a new identifier" {
+test "initialize an identifier token with literal value" {
     const token = Token.init(TokenTypes.ident, "foo");
     try testing.expectEqual(token.kind, TokenTypes.ident);
     try testing.expectEqual(token.literal, "foo");
 }
 
-test "lookup keywords" {
+test "lookup_ident returns function TokenType for 'fn' keyword" {
     const typ = TokenTypes.lookup_ident("fn");
     try testing.expectEqual(TokenTypes.function, typ);
 }
