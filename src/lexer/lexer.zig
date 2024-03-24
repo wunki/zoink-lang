@@ -4,7 +4,7 @@ const assert = std.debug.assert;
 
 const token = @import("../token/token.zig");
 const Token = token.Token;
-const TokenTypes = token.TokenTypes;
+const TokenType = token.TokenType;
 
 /// The `Lexer` struct is used for tokenizing a given input string into a sequence of `Token`s.
 /// It holds the state necessary for scanning through the input and extracting tokens one by one.
@@ -52,24 +52,32 @@ pub const Lexer = struct {
     pub fn next_token(self: *Self) token.Token {
         self.skip_whitespace();
 
+        std.log.warn("current character: {u}", .{self.current_char});
+
         const t: token.Token = switch (self.current_char) {
-            '=' => Token.init(TokenTypes.assign, "="),
-            ';' => Token.init(TokenTypes.semicolon, ";"),
-            '(' => Token.init(TokenTypes.lparen, "("),
-            ')' => Token.init(TokenTypes.rparen, ")"),
-            ',' => Token.init(TokenTypes.comma, ","),
-            '+' => Token.init(TokenTypes.plus, "+"),
-            '{' => Token.init(TokenTypes.lbrace, "{"),
-            '}' => Token.init(TokenTypes.rbrace, "}"),
-            0 => Token.init(TokenTypes.eof, ""),
+            '=' => Token.init(.assign, "="),
+            '+' => Token.init(.plus, "+"),
+            '-' => Token.init(.minus, "-"),
+            '!' => Token.init(.bang, "!"),
+            '/' => Token.init(.slash, "/"),
+            '*' => Token.init(.asterisk, "*"),
+            '<' => Token.init(.lt, "<"),
+            '>' => Token.init(.gt, ">"),
+            ';' => Token.init(.semicolon, ";"),
+            ',' => Token.init(.comma, ","),
+            '(' => Token.init(.lparen, "("),
+            ')' => Token.init(.rparen, ")"),
+            '{' => Token.init(.lbrace, "{"),
+            '}' => Token.init(.rbrace, "}"),
+            0 => Token.init(.eof, ""),
             else => if (is_letter(self.current_char)) {
                 const identifier = self.read_identifier();
-                return Token.init(TokenTypes.lookup_ident(identifier), identifier);
+                return Token.init(TokenType.lookup_ident(identifier), identifier);
             } else if (is_digit(self.current_char)) {
                 const literal = self.read_number();
-                return Token.init(TokenTypes.int, literal);
+                return Token.init(.int, literal);
             } else {
-                return Token.init(TokenTypes.illegal, "");
+                return Token.init(.illegal, "");
             },
         };
         self.read_char();
@@ -111,14 +119,23 @@ fn is_letter(c: u8) bool {
     return (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z');
 }
 
-/// Determines if the given character is a digit.
 fn is_digit(c: u8) bool {
-    return (c <= '0') or (c <= '9');
+    return (c >= '0' and c <= '9');
 }
 
 test "lexer initialization with single character input" {
     const lexer = try Lexer.init("a");
     try testing.expectEqual(lexer.input, "a");
+}
+
+test "is_digit function correctly identifies digits and non-digits" {
+    try testing.expect(is_digit('0'));
+    try testing.expect(is_digit('5'));
+    try testing.expect(is_digit('9'));
+    try testing.expect(!is_digit('/')); // Character before '0'
+    try testing.expect(!is_digit(':')); // Character after '9'
+    try testing.expect(!is_digit('a'));
+    try testing.expect(!is_digit(' '));
 }
 
 test "lexer correctly tokenizes a sequence of source code" {
@@ -131,45 +148,65 @@ test "lexer correctly tokenizes a sequence of source code" {
         \\ }
         \\
         \\ let result = add(five, ten);
+        \\ !-/*5;
+        \\ 5 < 10 > 5;
+        \\
+        \\ if (5 < 10) {
+        \\   return true;
+        \\ } else {
+        \\   return false;
+        \\ }
     ;
 
     const expected_tokens = [_]token.Token{
-        Token.init(TokenTypes.let, "let"),
-        Token.init(TokenTypes.ident, "five"),
-        Token.init(TokenTypes.assign, "="),
-        Token.init(TokenTypes.int, "5"),
-        Token.init(TokenTypes.semicolon, ";"),
-        Token.init(TokenTypes.let, "let"),
-        Token.init(TokenTypes.ident, "ten"),
-        Token.init(TokenTypes.assign, "="),
-        Token.init(TokenTypes.int, "10"),
-        Token.init(TokenTypes.semicolon, ";"),
-        Token.init(TokenTypes.let, "let"),
-        Token.init(TokenTypes.ident, "add"),
-        Token.init(TokenTypes.assign, "="),
-        Token.init(TokenTypes.function, "fn"),
-        Token.init(TokenTypes.lparen, "("),
-        Token.init(TokenTypes.ident, "x"),
-        Token.init(TokenTypes.comma, ","),
-        Token.init(TokenTypes.ident, "y"),
-        Token.init(TokenTypes.rparen, ")"),
-        Token.init(TokenTypes.lbrace, "{"),
-        Token.init(TokenTypes.ident, "x"),
-        Token.init(TokenTypes.plus, "+"),
-        Token.init(TokenTypes.ident, "y"),
-        Token.init(TokenTypes.semicolon, ";"),
-        Token.init(TokenTypes.rbrace, "}"),
-        Token.init(TokenTypes.let, "let"),
-        Token.init(TokenTypes.ident, "result"),
-        Token.init(TokenTypes.assign, "="),
-        Token.init(TokenTypes.ident, "add"),
-        Token.init(TokenTypes.lparen, "("),
-        Token.init(TokenTypes.ident, "five"),
-        Token.init(TokenTypes.comma, ","),
-        Token.init(TokenTypes.ident, "ten"),
-        Token.init(TokenTypes.rparen, ")"),
-        Token.init(TokenTypes.semicolon, ";"),
-        Token.init(TokenTypes.eof, ""),
+        Token.init(.let, "let"),
+        Token.init(.ident, "five"),
+        Token.init(.assign, "="),
+        Token.init(.int, "5"),
+        Token.init(.semicolon, ";"),
+        Token.init(.let, "let"),
+        Token.init(.ident, "ten"),
+        Token.init(.assign, "="),
+        Token.init(.int, "10"),
+        Token.init(.semicolon, ";"),
+        Token.init(.let, "let"),
+        Token.init(.ident, "add"),
+        Token.init(.assign, "="),
+        Token.init(.function, "fn"),
+        Token.init(.lparen, "("),
+        Token.init(.ident, "x"),
+        Token.init(.comma, ","),
+        Token.init(.ident, "y"),
+        Token.init(.rparen, ")"),
+        Token.init(.lbrace, "{"),
+        Token.init(.ident, "x"),
+        Token.init(.plus, "+"),
+        Token.init(.ident, "y"),
+        Token.init(.semicolon, ";"),
+        Token.init(.rbrace, "}"),
+        Token.init(.let, "let"),
+        Token.init(.ident, "result"),
+        Token.init(.assign, "="),
+        Token.init(.ident, "add"),
+        Token.init(.lparen, "("),
+        Token.init(.ident, "five"),
+        Token.init(.comma, ","),
+        Token.init(.ident, "ten"),
+        Token.init(.rparen, ")"),
+        Token.init(.semicolon, ";"),
+        Token.init(.bang, "!"),
+        Token.init(.minus, "-"),
+        Token.init(.slash, "/"),
+        Token.init(.asterisk, "*"),
+        Token.init(.int, "5"),
+        Token.init(.semicolon, ";"),
+        Token.init(.int, "5"),
+        Token.init(.lt, "<"),
+        Token.init(.int, "10"),
+        Token.init(.gt, ">"),
+        Token.init(.int, "5"),
+        Token.init(.semicolon, ";"),
+        Token.init(.eof, ""),
     };
 
     // Check that each char returns the right token.
