@@ -8,15 +8,15 @@ const CompTimeStringMap = std.ComptimeStringMap;
 /// by the `lookup_ident` function, which resolves identifiers to their appropriate token types,
 /// defaulting to `ident` for user-defined names.
 pub const TokenType = enum {
-    // Special tokens
+    // Tokens representing errors or end of file
     illegal,
     eof,
 
-    // Identifiers and literals
+    // Tokens for identifiers and basic types
     ident,
     int,
 
-    // Operators
+    // Arithmetic and comparison operators
     assign,
     plus,
     minus,
@@ -26,7 +26,7 @@ pub const TokenType = enum {
     lt,
     gt,
 
-    // Delimiters
+    // Punctuation tokens
     comma,
     semicolon,
     lparen,
@@ -34,11 +34,11 @@ pub const TokenType = enum {
     lbrace,
     rbrace,
 
-    // Keywords
+    // Tokens representing language keywords
     function,
     let,
 
-    // Operators
+    // Logical operators and control flow keywords
     true_op,
     false_op,
     if_op,
