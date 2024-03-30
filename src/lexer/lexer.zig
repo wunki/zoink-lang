@@ -51,9 +51,6 @@ pub const Lexer = struct {
     /// It skips any whitespace before determining the correct token type based on the current character.
     pub fn next_token(self: *Self) token.Token {
         self.skip_whitespace();
-
-        std.log.warn("current character: {u}", .{self.current_char});
-
         const t: token.Token = switch (self.current_char) {
             '=' => Token.init(.assign, "="),
             '+' => Token.init(.plus, "+"),
@@ -72,7 +69,7 @@ pub const Lexer = struct {
             0 => Token.init(.eof, ""),
             else => if (is_letter(self.current_char)) {
                 const identifier = self.read_identifier();
-                return Token.init(TokenType.lookup_ident(identifier), identifier);
+                return Token.init(Token.keyword(identifier), identifier);
             } else if (is_digit(self.current_char)) {
                 const literal = self.read_number();
                 return Token.init(.int, literal);
@@ -206,6 +203,23 @@ test "lexer correctly tokenizes a sequence of source code" {
         Token.init(.gt, ">"),
         Token.init(.int, "5"),
         Token.init(.semicolon, ";"),
+        Token.init(.if_op, "if"),
+        Token.init(.lparen, "("),
+        Token.init(.int, "5"),
+        Token.init(.lt, "<"),
+        Token.init(.int, "10"),
+        Token.init(.rparen, ")"),
+        Token.init(.lbrace, "{"),
+        Token.init(.return_op, "return"),
+        Token.init(.true_op, "true"),
+        Token.init(.semicolon, ";"),
+        Token.init(.rbrace, "}"),
+        Token.init(.else_op, "else"),
+        Token.init(.lbrace, "{"),
+        Token.init(.return_op, "return"),
+        Token.init(.false_op, "false"),
+        Token.init(.semicolon, ";"),
+        Token.init(.rbrace, "}"),
         Token.init(.eof, ""),
     };
 

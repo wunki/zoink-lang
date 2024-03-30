@@ -3,11 +3,6 @@ const testing = std.testing;
 
 const CompTimeStringMap = std.ComptimeStringMap;
 
-const keywords_map = CompTimeStringMap(TokenType, .{
-    .{ "fn", .function },
-    .{ "let", .let },
-});
-
 /// TokenType represents different classifications of lexical tokens within the language.
 /// It includes both language keywords and syntax tokens. Additional utility is provided
 /// by the `lookup_ident` function, which resolves identifiers to their appropriate token types,
@@ -43,18 +38,12 @@ pub const TokenType = enum {
     function,
     let,
 
-    /// Determines the token type for a given identifier literal.
-    /// If the identifier matches a reserved keyword, the corresponding token type is returned.
-    /// Otherwise, it defaults to the 'ident' (identifier) token type.
-    /// This function is necessary because Zig does not allow switch statements on runtime string literals.
-    /// Instead, an if-else chain is used to compare the provided literal with known keywords.
-    pub fn lookup_ident(literal: []const u8) TokenType {
-        if (keywords_map.get(literal)) |typ| {
-            return typ;
-        } else {
-            return .ident;
-        }
-    }
+    // Operators
+    true_op,
+    false_op,
+    if_op,
+    else_op,
+    return_op,
 };
 
 /// A Token represents a single lexical token with an associated TokenType and literal value.
@@ -74,6 +63,27 @@ pub const Token = struct {
             .literal = literal,
         };
     }
+
+    /// Determines the token type for a given identifier literal.
+    /// If the identifier matches a reserved keyword, the corresponding token type is returned.
+    /// Otherwise, it defaults to the 'ident' (identifier) token type.
+    pub fn keyword(literal: []const u8) TokenType {
+        const map = CompTimeStringMap(TokenType, .{
+            .{ "let", .let },
+            .{ "fn", .function },
+            .{ "true", .true_op },
+            .{ "false", .false_op },
+            .{ "if", .if_op },
+            .{ "else", .else_op },
+            .{ "return", .return_op },
+        });
+
+        if (map.get(literal)) |typ| {
+            return typ;
+        } else {
+            return .ident;
+        }
+    }
 };
 
 test "initialize a token with plus TokenType" {
@@ -89,6 +99,6 @@ test "initialize an identifier token with literal value" {
 }
 
 test "lookup_ident returns function TokenType for 'fn' keyword" {
-    const typ = TokenType.lookup_ident("fn");
+    const typ = Token.keyword("fn");
     try testing.expectEqual(TokenType.function, typ);
 }
