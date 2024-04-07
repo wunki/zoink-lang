@@ -51,11 +51,30 @@ pub const Lexer = struct {
     /// It skips any whitespace before determining the correct token type based on the current character.
     pub fn next_token(self: *Self) token.Token {
         self.skip_whitespace();
+
         const t: token.Token = switch (self.current_char) {
-            '=' => Token.init(.assign, "="),
+            '=' => blk: {
+                if (self.peek_char() == '=') {
+                    const current_char = self.current_char;
+                    self.read_char();
+                    const literal = [_]u8{ current_char, self.current_char };
+                    break :blk Token.init(.eq, &literal);
+                } else {
+                    break :blk Token.init(.assign, "=");
+                }
+            },
             '+' => Token.init(.plus, "+"),
             '-' => Token.init(.minus, "-"),
-            '!' => Token.init(.bang, "!"),
+            '!' => blk: {
+                if (self.peek_char() == '=') {
+                    const current_char = self.current_char;
+                    self.read_char();
+                    const literal = [_]u8{ current_char, self.current_char };
+                    break :blk Token.init(.not_eq, &literal);
+                } else {
+                    break :blk Token.init(.bang, "!");
+                }
+            },
             '/' => Token.init(.slash, "/"),
             '*' => Token.init(.asterisk, "*"),
             '<' => Token.init(.lt, "<"),
@@ -67,18 +86,32 @@ pub const Lexer = struct {
             '{' => Token.init(.lbrace, "{"),
             '}' => Token.init(.rbrace, "}"),
             0 => Token.init(.eof, ""),
-            else => if (is_letter(self.current_char)) {
-                const identifier = self.read_identifier();
-                return Token.init(Token.keyword(identifier), identifier);
-            } else if (is_digit(self.current_char)) {
-                const literal = self.read_number();
-                return Token.init(.int, literal);
-            } else {
-                return Token.init(.illegal, "");
+            else => blk: {
+                // For this, we do an early return because read_char is delegated to
+                // the functions themself, and we don't want to do it one more time below.
+                if (is_letter(self.current_char)) {
+                    const identifier = self.read_identifier();
+                    return Token.init(Token.keyword(identifier), identifier);
+                } else if (is_digit(self.current_char)) {
+                    const literal = self.read_number();
+                    return Token.init(.int, literal);
+                } else {
+                    break :blk Token.init(.illegal, "");
+                }
             },
         };
         self.read_char();
         return t;
+    }
+
+    /// Peeks ahead in the input without advancing the current character or position.
+    /// This is useful for lookahead operations where the next character needs to be inspected
+    /// without affecting the current parsing state.
+    fn peek_char(self: *Self) u8 {
+        if (self.read_position >= self.input.len) {
+            return 0;
+        }
+        return self.input[self.read_position];
     }
 
     /// Skips all whitespace characters in the input until a non-whitespace character is reached.
@@ -153,6 +186,9 @@ test "lexer correctly tokenizes a sequence of source code" {
         \\ } else {
         \\   return false;
         \\ }
+        \\
+        \\ 10 == 10;
+        \\ 10 != 9;
     ;
 
     const expected_tokens = [_]token.Token{
@@ -220,6 +256,14 @@ test "lexer correctly tokenizes a sequence of source code" {
         Token.init(.false_op, "false"),
         Token.init(.semicolon, ";"),
         Token.init(.rbrace, "}"),
+        Token.init(.int, "10"),
+        Token.init(.eq, "=="),
+        Token.init(.int, "10"),
+        Token.init(.semicolon, ";"),
+        Token.init(.int, "10"),
+        Token.init(.not_eq, "!="),
+        Token.init(.int, "9"),
+        Token.init(.semicolon, ";"),
         Token.init(.eof, ""),
     };
 

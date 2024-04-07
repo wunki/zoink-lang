@@ -25,6 +25,8 @@ pub const TokenType = enum {
     slash,
     lt,
     gt,
+    eq,
+    not_eq,
 
     // Punctuation tokens
     comma,
