@@ -267,7 +267,6 @@ test "lexer correctly tokenizes a sequence of source code" {
         Token.init(.eof, ""),
     };
 
-    // Check that each char returns the right token.
     var lexer = try Lexer.init(input);
     for (expected_tokens) |e_t| {
         const t = lexer.next_token();
