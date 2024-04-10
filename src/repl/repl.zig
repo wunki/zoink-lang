@@ -11,6 +11,6 @@ pub fn init(allocator: std.mem.Allocator) !void {
 
     while (true) : (token = lexer.next_token()) {
         if (token.kind == .eof) break;
-        std.debug.print("token: {}\n", .{token});
+        std.debug.print("{any}\n", .{token});
     }
 }
